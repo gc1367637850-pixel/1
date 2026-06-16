@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ff5f8f">
+<title>心动分支飞行棋</title>
+<style>
+:root{
+  --pink:#ff5f8f;--pink2:#ff9ab9;--purple:#8b78e8;--gold:#f2bd4a;
+  --ink:#3c2c34;--muted:#806c75;--card:rgba(255,255,255,.92);
+  --shadow:0 18px 52px rgba(96,48,68,.17)
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink)}
+body{
+  min-height:100vh;padding:10px;
+  background:
+    radial-gradient(circle at 9% 8%,rgba(255,255,255,.9) 0 6%,transparent 7%),
+    radial-gradient(circle at 92% 12%,rgba(255,255,255,.65) 0 5%,transparent 6%),
+    linear-gradient(135deg,#ffdce8,#fff8ef 50%,#eee8ff)
+}
+button,input{font-family:inherit}
+button{cursor:pointer}
+.app{max-width:1240px;margin:auto}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:11px}
+h1{font-size:clamp(25px,4vw,42px);margin:0}
+.subtitle{margin-top:5px;color:var(--muted);font-size:13px}
+.pill{border:0;border-radius:999px;background:#fff;padding:10px 14px;font-weight:850;box-shadow:0 8px 22px rgba(70,40,53,.11)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 335px;gap:13px}
+.panel{background:var(--card);border:1px solid rgba(255,255,255,.9);border-radius:24px;box-shadow:var(--shadow);backdrop-filter:blur(12px)}
+.map-wrap{padding:12px;overflow:auto}
+.map{min-width:760px}
+.section-title{font-size:13px;font-weight:950;color:#76535f;margin:5px 2px 8px}
+.main-track{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.cell{
+  min-height:91px;border-radius:17px;padding:8px;position:relative;overflow:hidden;
+  border:2px solid rgba(255,255,255,.82);box-shadow:0 6px 15px rgba(70,38,51,.09);
+  display:flex;flex-direction:column;justify-content:space-between
+}
+.cell::after{content:"";position:absolute;width:48px;height:48px;border-radius:50%;right:-18px;bottom:-18px;background:rgba(255,255,255,.28)}
+.safe{background:linear-gradient(145deg,#ffe2ec,#fff2f6)}
+.heart{background:linear-gradient(145deg,#e9dfff,#f7f1ff)}
+.bold{background:linear-gradient(145deg,#ffd8cb,#fff0e8)}
+.event{background:linear-gradient(145deg,#fff0b5,#fff8dc)}
+.gate{outline:3px dashed rgba(255,95,143,.48)}
+.merge{outline:3px dashed rgba(139,120,232,.42)}
+.num{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.8);display:grid;place-items:center;font-size:12px;font-weight:950;z-index:1}
+.txt{font-size:11px;font-weight:850;line-height:1.28;z-index:1}
+.tokens{display:flex;gap:4px;min-height:23px;z-index:2}
+.token{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;border:2px solid #fff;font-size:11px;font-weight:950}
+.t1{background:var(--pink)}.t2{background:var(--purple)}
+.fork{margin-top:13px;padding:10px;border-radius:20px;background:rgba(255,255,255,.58);border:1px solid rgba(255,255,255,.85)}
+.fork-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.fork-title{font-size:15px;font-weight:950}
+.fork-note{font-size:11px;color:var(--muted)}
+.route-row{display:grid;grid-template-columns:84px repeat(7,minmax(74px,1fr));gap:6px;align-items:stretch;margin-top:6px}
+.route-label{border-radius:14px;padding:9px 8px;background:#fff;font-size:12px;font-weight:950;display:flex;align-items:center;justify-content:center;text-align:center}
+.route-cell{
+  min-height:68px;border-radius:14px;padding:7px;position:relative;display:flex;flex-direction:column;justify-content:space-between;
+  border:2px solid rgba(255,255,255,.8);box-shadow:0 4px 11px rgba(65,34,47,.07)
+}
+.route-cell .txt{font-size:10px}
+.route-cell.empty{visibility:hidden}
+.route-token-slot{display:flex;gap:3px;min-height:21px}
+.entry-badge{margin-left:auto;font-size:10px;border-radius:999px;padding:4px 7px;background:#fff;color:#71535f;border:1px solid #e7d8de}
+.side{display:flex;flex-direction:column;gap:12px}
+.side .panel{padding:15px}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.player{background:#fff;border-radius:17px;padding:11px;border:2px solid transparent;box-shadow:0 6px 16px rgba(73,38,53,.08)}
+.player.active{border-color:var(--pink);transform:translateY(-2px)}
+.pname{font-weight:950}.pmeta{font-size:11px;color:var(--muted);margin-top:4px}.ppos{font-size:21px;font-weight:950;margin-top:5px}
+.p1 .ppos{color:var(--pink)}.p2 .ppos{color:var(--purple)}
+.status{margin-top:11px;padding:11px;border-radius:15px;background:linear-gradient(135deg,#fff1f6,#fffaf4);font-size:13px;line-height:1.55}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.badge{font-size:11px;border-radius:999px;padding:5px 8px;background:#fff;border:1px solid #eadde3}
+.dice{width:88px;height:88px;border-radius:24px;margin:13px auto;background:#fff;display:grid;place-items:center;font-size:50px;box-shadow:0 10px 25px rgba(89,44,62,.16)}
+.dice.roll{animation:shake .55s ease}
+@keyframes shake{0%,100%{transform:none}25%{transform:rotate(-13deg) scale(1.08)}55%{transform:rotate(14deg) scale(.96)}80%{transform:rotate(-7deg) scale(1.04)}}
+.primary,.secondary,.danger{border:0;border-radius:17px;padding:14px 16px;font-size:16px;font-weight:950}
+.primary{background:linear-gradient(135deg,var(--pink2),var(--pink));color:#fff;box-shadow:0 9px 22px rgba(255,95,143,.25)}
+.secondary{background:#f2edf1;color:#5d4852}
+.danger{background:#fff0f0;color:#c74457}
+.w100{width:100%}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px}
+.legend span{display:flex;align-items:center;gap:7px}.dot{width:11px;height:11px;border-radius:50%}
+.small{font-size:12px;color:var(--muted);line-height:1.55}
+.modal{position:fixed;inset:0;background:rgba(47,28,37,.5);display:none;place-items:center;padding:16px;z-index:50;backdrop-filter:blur(8px)}
+.modal.show{display:grid}
+.card{width:min(570px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:28px;padding:22px;box-shadow:0 25px 90px rgba(37,18,27,.3);animation:rise .23s ease}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.card h2{margin:6px 0 10px;font-size:25px;text-align:center}
+.kicker{text-align:center;font-size:12px;font-weight:950;color:#df4a73}
+.big{text-align:center;font-size:20px;font-weight:900;line-height:1.5;margin:14px 0}
+.notice{background:#fff6e7;border-radius:15px;padding:11px 13px;font-size:13px;line-height:1.55;color:#6f5a48}
+.options{display:grid;gap:9px;margin-top:14px}
+.opt{border:2px solid #f1dfe6;background:#fff;border-radius:17px;padding:13px;text-align:left;font-size:15px;font-weight:900}
+.opt small{display:block;margin-top:5px;color:var(--muted);font-weight:700;line-height:1.4}
+.opt:active{transform:scale(.985)}
+.timer{font-size:52px;font-weight:950;text-align:center;margin:10px 0;color:var(--pink)}
+.progress{height:9px;background:#f2e7eb;border-radius:99px;overflow:hidden}.progress>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--pink2),var(--pink))}
+.setup{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:18px;background:linear-gradient(135deg,#ffdce8,#fff7ef 52%,#eee7ff)}
+.setup-card{width:min(520px,100%);background:rgba(255,255,255,.95);border-radius:30px;padding:25px;box-shadow:var(--shadow);text-align:center}
+.setup-card h2{font-size:30px;margin:0 0 8px}.setup-card p{color:var(--muted);line-height:1.6}
+.inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.inputs label{text-align:left;font-size:13px;font-weight:850}
+.inputs input{width:100%;margin-top:6px;padding:13px;border:2px solid #eddde4;border-radius:15px;font-size:16px;outline:none}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:#392a31;color:#fff;padding:11px 16px;border-radius:999px;z-index:100;transition:.25s;font-size:13px}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .panel:first-child{grid-column:1/-1}}
+@media(max-width:620px){body{padding:7px}.map{min-width:750px}.cell{min-height:82px}.side{display:flex}.card{padding:18px}.big{font-size:18px}.route-row{grid-template-columns:76px repeat(7,minmax(72px,1fr))}}
+</style>
+</head>
+<body>
+<div class="setup" id="setup">
+  <div class="setup-card">
+    <div style="font-size:50px">💗🎲</div>
+    <h2>心动分支飞行棋</h2>
+    <p>这次是真分支：到达分支口后，掷骰按钮会锁住，由对手强制选择你进入哪条路线。</p>
+    <div class="inputs">
+      <label>玩家一<input id="n1" value="小晨" maxlength="8"></label>
+      <label>玩家二<input id="n2" value="园园" maxlength="8"></label>
+    </div>
+    <button class="primary w100" id="start" style="margin-top:16px">开始游戏</button>
+    <div class="small" style="margin-top:12px">仅限双方成年、自愿参与。任何任务都能随时停止，不舒服时不算失败，也不需要解释。</div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="top">
+    <div>
+      <h1>心动分支飞行棋 💞</h1>
+      <div class="subtitle">对手选路线、对手选任务；路线长短和刺激程度真的不同。</div>
+    </div>
+    <button class="pill" id="full">全屏</button>
+  </div>
+
+  <div class="layout">
+    <section class="panel map-wrap">
+      <div class="map">
+        <div class="section-title">主路线</div>
+        <div class="main-track" id="mainTrack"></div>
+
+        <div class="fork" id="fork1">
+          <div class="fork-head">
+            <div class="fork-title">分支一：由对手决定路线</div>
+            <div class="fork-note">甜蜜更长，心动居中，大胆最短</div>
+          </div>
+          <div id="fork1Rows"></div>
+        </div>
+
+        <div class="fork" id="fork2">
+          <div class="fork-head">
+            <div class="fork-title">分支二：由对手再次决定</div>
+            <div class="fork-note">进入后不能中途换线</div>
+          </div>
+          <div id="fork2Rows"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <div class="players">
+          <div class="player p1 active" id="pc1"><div class="pname" id="pn1">小晨</div><div class="pmeta">粉色棋子</div><div class="ppos" id="pp1">起点</div></div>
+          <div class="player p2" id="pc2"><div class="pname" id="pn2">园园</div><div class="pmeta">紫色棋子</div><div class="ppos" id="pp2">起点</div></div>
+        </div>
+        <div class="status" id="status">轮到小晨</div>
+        <div class="badges" id="badges"></div>
+        <div class="dice" id="dice">⚀</div>
+        <button class="primary w100" id="roll">掷骰子</button>
+        <div class="small" style="margin-top:10px">
+          到达第 7、15 格会强制停在分支口。选定路线后，下一次掷骰才在支线上移动。
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="legend">
+          <span><i class="dot" style="background:#ffc7d8"></i>甜蜜路线</span>
+          <span><i class="dot" style="background:#d7c8ff"></i>心动路线</span>
+          <span><i class="dot" style="background:#ffc0a9"></i>大胆路线</span>
+          <span><i class="dot" style="background:#f4d479"></i>事件格</span>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="secondary" id="save">保存</button>
+          <button class="danger" id="reset">重开</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="card">
+    <div class="kicker" id="mk">由对手选择</div>
+    <h2 id="mt">任务格</h2>
+    <div class="big" id="mb"></div>
+    <div class="notice" id="mn"></div>
+    <div class="options" id="opts"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="secondary" id="skip">跳过任务</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="timerModal">
+  <div class="card">
+    <div class="kicker">计时挑战</div>
+    <h2 id="timerTitle">准备好了吗</h2>
+    <div class="timer" id="timer">30</div>
+    <div class="progress"><i id="bar"></i></div>
+    <div class="big" id="timerTask"></div>
+    <div class="notice">任何一方想停都可以立即停止，不算失败。</div>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" id="timerStart">开始计时</button>
+      <button class="secondary" id="timerDone">直接完成</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="winModal">
+  <div class="card">
+    <div style="font-size:62px;text-align:center">🏆💖</div>
+    <h2 id="winTitle">到达终点</h2>
+    <div class="big">终点任务由对手从“拥抱一分钟、亲吻一分钟、按摩两分钟”中选一个。</div>
+    <button class="primary w100" id="again">再玩一局</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const mainNodes = [
+ {type:"safe",label:"牵手到下一轮"},
+ {type:"safe",label:"拥抱30秒"},
+ {type:"event",label:"对手决定"},
+ {type:"safe",label:"肩颈按摩2分钟"},
+ {type:"heart",label:"亲吻30秒"},
+ {type:"event",label:"幸运事件"},
+ {type:"gate",label:"分支一入口"},
+ {type:"safe",label:"靠在怀里一轮"},
+ {type:"heart",label:"对手选亲哪里"},
+ {type:"event",label:"交换位置"},
+ {type:"safe",label:"手部按摩1分钟"},
+ {type:"heart",label:"亲吻45秒"},
+ {type:"event",label:"再掷一次"},
+ {type:"heart",label:"坐到腿上"},
+ {type:"gate",label:"分支二入口"},
+ {type:"safe",label:"背部按摩2分钟"},
+ {type:"heart",label:"亲吻60秒"},
+ {type:"event",label:"豪赌格"},
+ {type:"bold",label:"怀里停留"},
+ {type:"heart",label:"追加挑战"},
+ {type:"event",label:"退回上个汇合点"},
+ {type:"safe",label:"按摩换免退卡"},
+ {type:"bold",label:"对手主导"},
+ {type:"event",label:"随机时长"},
+ {type:"heart",label:"亲吻60秒"},
+ {type:"bold",label:"亲吻90秒"},
+ {type:"event",label:"反弹警告"},
+ {type:"heart",label:"对手决定"},
+ {type:"event",label:"终点"}
+];
+
+const routeMaps = {
+  1:{
+    gate:7,exit:8,
+    safe:[
+      {type:"safe",label:"拥抱30秒"},{type:"safe",label:"按摩肩颈2分钟"},
+      {type:"safe",label:"牵手对视"},{type:"safe",label:"靠在怀里"},
+      {type:"safe",label:"亲脸颊"},{type:"safe",label:"说心里话"}
+    ],
+    heart:[
+      {type:"heart",label:"亲吻45秒"},{type:"heart",label:"坐到腿上"},
+      {type:"heart",label:"对手选位置"},{type:"heart",label:"搂腰亲吻"}
+    ],
+    bold:[
+      {type:"bold",label:"怀里停留"},{type:"bold",label:"亲吻60秒"},
+      {type:"bold",label:"对手定时长"}
+    ]
+  },
+  2:{
+    gate:15,exit:16,
+    safe:[
+      {type:"safe",label:"按摩手部1分钟"},{type:"safe",label:"拥抱45秒"},
+      {type:"safe",label:"整理头发"},{type:"safe",label:"肩颈按摩"},
+      {type:"safe",label:"靠在肩上"},{type:"safe",label:"亲额头"},
+      {type:"safe",label:"夸对方3句"}
+    ],
+    heart:[
+      {type:"heart",label:"亲吻60秒"},{type:"heart",label:"坐腿上到下一轮"},
+      {type:"heart",label:"对手选亲哪里"},{type:"heart",label:"耳边憋笑挑战"},
+      {type:"heart",label:"追加30秒"}
+    ],
+    bold:[
+      {type:"bold",label:"随机时长亲吻"},{type:"bold",label:"怀里停留"},
+      {type:"bold",label:"锁骨憋笑挑战"},{type:"bold",label:"亲吻90秒"}
+    ]
+  }
+};
+
+const diceFaces=["⚀","⚁","⚂","⚃","⚄","⚅"];
+const taskPools={
+ safe:[
+  {t:"抱紧对方30秒",sec:30},
+  {t:"给对方按摩肩颈2分钟",sec:120},
+  {t:"牵手并认真夸对方三句"},
+  {t:"让对方靠在怀里到下一轮",state:"leanNext"}
+ ],
+ heart:[
+  {t:"亲吻45秒",sec:45},
+  {t:"坐到对方腿上直到下一轮",state:"lapNext"},
+  {t:"由对方选择亲额头、脸颊、嘴角或嘴唇",sec:30},
+  {t:"搂住腰亲吻60秒",sec:60},
+  {t:"鼻尖贴近对视20秒，执行者不许笑",laughChallenge:"nose"}
+ ],
+ bold:[
+  {t:"怀里停留：随机数字解锁",state:"lapUnlock"},
+  {t:"由对方决定亲吻45、60或90秒",customTime:true},
+  {t:"亲吻90秒",sec:90},
+  {t:"由对方决定：按摩2分钟或亲吻60秒",customPair:true},
+  {t:"憋笑挑战：由对方决定锁骨、颈侧或耳边",laughChallenge:"choose"}
+ ]
+};
+
+let state={
+ names:["小晨","园园"],
+ loc:[{kind:"main",pos:0},{kind:"main",pos:0}],
+ turn:0,playing:false,pending:false,
+ effects:[{},{}],
+ lastMerge:[0,0]
+};
+
+const $=id=>document.getElementById(id);
+const mainTrack=$("mainTrack"), modal=$("modal"), timerModal=$("timerModal"), winModal=$("winModal"), toast=$("toast");
+let currentTask=null,timerId=null,remain=0,total=0;
+
+function nodeClass(type){
+ if(type==="gate") return "event gate";
+ return type;
+}
+
+function buildMap(){
+ mainTrack.innerHTML="";
+ mainNodes.forEach((n,i)=>{
+   const pos=i+1;
+   const c=document.createElement("div");
+   c.className=`cell ${nodeClass(n.type)} ${[8,16].includes(pos)?"merge":""}`;
+   c.dataset.loc=`main-${pos}`;
+   c.innerHTML=`<div class="num">${pos}</div><div class="txt">${n.label}</div><div class="tokens"></div>`;
+   mainTrack.appendChild(c);
+ });
+ buildForkRows(1);
+ buildForkRows(2);
+ render();
+}
+
+function buildForkRows(fork){
+ const holder=$(`fork${fork}Rows`);
+ holder.innerHTML="";
+ ["safe","heart","bold"].forEach(route=>{
+   const row=document.createElement("div");
+   row.className="route-row";
+   const names={safe:"甜蜜路线",heart:"心动路线",bold:"大胆路线"};
+   row.innerHTML=`<div class="route-label ${route}">${names[route]}<br>${routeMaps[fork][route].length}格</div>`;
+   const cells=routeMaps[fork][route];
+   for(let i=0;i<7;i++){
+     const wrap=document.createElement("div");
+     if(i<cells.length){
+       const n=cells[i];
+       wrap.className=`route-cell ${n.type}`;
+       wrap.dataset.loc=`branch-${fork}-${route}-${i+1}`;
+       wrap.innerHTML=`<div class="num">${i+1}</div><div class="txt">${n.label}</div><div class="route-token-slot"></div>`;
+     }else{
+       wrap.className="route-cell empty";
+     }
+     row.appendChild(wrap);
+   }
+   holder.appendChild(row);
+ });
+}
+
+function describeLoc(loc){
+ if(loc.kind==="main") return loc.pos?`主线第 ${loc.pos} 格`:"起点";
+ const names={safe:"甜蜜线",heart:"心动线",bold:"大胆线"};
+ return `${names[loc.route]} ${loc.step}/${routeMaps[loc.fork][loc.route].length}`;
+}
+
+function render(){
+ $("pn1").textContent=state.names[0];$("pn2").textContent=state.names[1];
+ $("pp1").textContent=describeLoc(state.loc[0]);$("pp2").textContent=describeLoc(state.loc[1]);
+ $("pc1").classList.toggle("active",state.turn===0);$("pc2").classList.toggle("active",state.turn===1);
+ $("status").innerHTML=`轮到 <b>${state.names[state.turn]}</b><br>由 ${state.names[1-state.turn]} 决定任务或路线`;
+
+ document.querySelectorAll(".tokens,.route-token-slot").forEach(x=>x.innerHTML="");
+
+ state.loc.forEach((loc,i)=>{
+   let selector="";
+   if(loc.kind==="main" && loc.pos>0) selector=`[data-loc="main-${loc.pos}"]`;
+   if(loc.kind==="branch" && loc.step>0) selector=`[data-loc="branch-${loc.fork}-${loc.route}-${loc.step}"]`;
+   if(selector){
+     const h=document.querySelector(`${selector} .tokens,${selector} .route-token-slot`);
+     if(h){
+       const t=document.createElement("div");
+       t.className=`token t${i+1}`;t.textContent=i?"◆":"♥";h.appendChild(t);
+     }
+   }
+ });
+
+ const b=[];
+ state.loc.forEach((loc,i)=>{
+   if(loc.kind==="branch" && loc.step===0){
+     const names={safe:"甜蜜路线",heart:"心动路线",bold:"大胆路线"};
+     b.push(`${state.names[i]}：已进入${names[loc.route]}，下次开始移动`);
+   }
+ });
+ state.effects.forEach((e,i)=>{
+   if(e.lapUnlock) b.push(`${state.names[i]}：怀里停留，解锁数字 ${e.lapUnlock.target}`);
+   if(e.lapNext) b.push(`${state.names[i]}：坐在对方腿上到下一轮`);
+   if(e.leanNext) b.push(`${state.names[i]}：靠在对方怀里到下一轮`);
+ });
+ $("badges").innerHTML=b.map(x=>`<span class="badge">${x}</span>`).join("");
+ $("roll").disabled=!state.playing||state.pending;
+}
+
+function showToast(t){
+ toast.textContent=t;toast.classList.add("show");
+ setTimeout(()=>toast.classList.remove("show"),1800);
+}
+function save(showMessage=true){
+ localStorage.setItem("heartBranchGameTrueForkV2",JSON.stringify(state));
+ if(showMessage)showToast("已保存");
+}
+function load(){
+ try{
+   const s=JSON.parse(localStorage.getItem("heartBranchGameTrueForkV2"));
+   if(s){state={...state,...s};return true}
+ }catch(e){}
+ return false;
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+$("start").onclick=()=>{
+ state={
+  names:[$("n1").value.trim()||"玩家一",$("n2").value.trim()||"玩家二"],
+  loc:[{kind:"main",pos:0},{kind:"main",pos:0}],
+  turn:0,playing:true,pending:false,effects:[{},{}],lastMerge:[0,0]
+ };
+ $("setup").style.display="none";buildMap();save(false);
+};
+
+$("roll").onclick=async()=>{
+ if(!state.playing||state.pending)return;
+ state.pending=true;render();
+
+ let v=1;
+ $("dice").classList.remove("roll");void $("dice").offsetWidth;$("dice").classList.add("roll");
+ for(let i=0;i<9;i++){v=1+Math.floor(Math.random()*6);$("dice").textContent=diceFaces[v-1];await sleep(55)}
+ await sleep(100);
+
+ handleOngoingEffects(v);
+ await moveSteps(v);
+};
+
+function handleOngoingEffects(v){
+ const e=state.effects[state.turn];
+ if(e.lapUnlock){
+   e.lapUnlock.tries++;
+   if(v===e.lapUnlock.target){showToast("摇中解锁数字，可以结束怀里停留");delete e.lapUnlock}
+   else if(e.lapUnlock.tries>=3){showToast("连续3次未摇中，自动结束怀里停留");delete e.lapUnlock}
+   else showToast(`没摇中 ${e.lapUnlock.target}，继续怀里停留`);
+ }
+ if(e.lapNext){delete e.lapNext;showToast("坐到下一轮状态结束")}
+ if(e.leanNext){delete e.leanNext;showToast("靠在怀里状态结束")}
+}
+
+async function moveSteps(steps){
+ const p=state.turn;
+ let remaining=steps;
+
+ while(remaining>0){
+   const loc=state.loc[p];
+
+   if(loc.kind==="main"){
+     const finalPos=mainNodes.length;
+     let next=loc.pos+1;
+
+     if(next>finalPos){
+       const over=next-finalPos;
+       next=finalPos-over;
+       state.loc[p]={kind:"main",pos:next};
+       remaining--;
+       render();
+       showToast(`走过终点，反弹到第 ${next} 格`);
+       await sleep(170);
+       continue;
+     }
+
+     state.loc[p]={kind:"main",pos:next};
+     remaining--;
+     render();
+     document.querySelector(`[data-loc="main-${next}"]`)?.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
+     await sleep(170);
+
+     if(next===7 || next===15){
+       const fork=next===7?1:2;
+       openMandatoryBranch(fork);
+       return;
+     }
+   }else{
+     const route=routeMaps[loc.fork][loc.route];
+     const nextStep=loc.step+1;
+
+     if(nextStep>route.length){
+       state.loc[p]={kind:"main",pos:routeMaps[loc.fork].exit};
+       state.lastMerge[p]=routeMaps[loc.fork].exit;
+       remaining--;
+       render();
+       showToast(`支线结束，汇合到主线第 ${routeMaps[loc.fork].exit} 格`);
+       await sleep(170);
+     }else{
+       state.loc[p]={...loc,step:nextStep};
+       remaining--;
+       render();
+       document.querySelector(`[data-loc="branch-${loc.fork}-${loc.route}-${nextStep}"]`)?.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
+       await sleep(170);
+     }
+   }
+ }
+
+ resolveLanding();
+}
+
+function openMandatoryBranch(fork){
+ $("mk").textContent=`由 ${state.names[1-state.turn]} 强制选择`;
+ $("mt").textContent=`分支 ${fork}`;
+ $("mb").textContent=`请选择 ${state.names[state.turn]} 必须进入的路线`;
+ $("mn").textContent="选定后不能中途换线。甜蜜路线最长，大胆路线最短。";
+ $("opts").innerHTML="";
+
+ const descriptions={
+  safe:"任务较轻，但路线最长。",
+  heart:"亲密程度中等，路线长度居中。",
+  bold:"任务更大胆，路线最短。"
+ };
+ const names={safe:"甜蜜路线",heart:"心动路线",bold:"大胆路线"};
+
+ ["safe","heart","bold"].forEach(route=>{
+   const b=document.createElement("button");
+   b.className="opt";
+   b.innerHTML=`${names[route]}（${routeMaps[fork][route].length}格）<small>${descriptions[route]}</small>`;
+   b.onclick=()=>{
+     state.loc[state.turn]={kind:"branch",fork,route,step:0};
+     modal.classList.remove("show");
+     showToast(`${state.names[state.turn]} 已被安排进入${names[route]}`);
+     endTurn();
+   };
+   $("opts").appendChild(b);
+ });
+
+ $("skip").style.display="none";
+ modal.classList.add("show");
+}
+
+function resolveLanding(){
+ const p=state.turn;
+ const loc=state.loc[p];
+
+ if(loc.kind==="main"){
+   if(loc.pos===mainNodes.length){
+     state.playing=false;state.pending=false;render();save(false);
+     $("winTitle").textContent=`${state.names[p]} 到达终点啦`;
+     winModal.classList.add("show");
+     return;
+   }
+   const node=mainNodes[loc.pos-1];
+   if(node.type==="event" || node.type==="gate") handleMainEvent(loc.pos,node);
+   else openOpponentChoice(node.type,node.label);
+ }else{
+   const node=routeMaps[loc.fork][loc.route][loc.step-1];
+   openOpponentChoice(node.type,node.label);
+ }
+}
+
+function openOpponentChoice(type,label){
+ currentTask={type,label};
+ $("mk").textContent=`由 ${state.names[1-state.turn]} 选择`;
+ $("mt").textContent=label;
+ $("mb").textContent=`${state.names[1-state.turn]} 来决定 ${state.names[state.turn]} 做哪一项`;
+ $("mn").textContent="执行者可以随时说停；任何一方不舒服都可以跳过。";
+ $("opts").innerHTML="";
+
+ taskPools[type].forEach(choice=>{
+   const b=document.createElement("button");
+   b.className="opt";b.textContent=choice.t;
+   b.onclick=()=>selectTask(choice);
+   $("opts").appendChild(b);
+ });
+
+ $("skip").style.display="block";
+ modal.classList.add("show");
+}
+
+function selectTask(choice){
+ modal.classList.remove("show");
+
+ if(choice.customTime){openTimeChoice();return}
+ if(choice.customPair){openPairChoice();return}
+ if(choice.laughChallenge){openLaughChallenge(choice.laughChallenge);return}
+
+ if(choice.state==="lapUnlock"){
+   const target=1+Math.floor(Math.random()*6);
+   state.effects[state.turn].lapUnlock={target,tries:0};
+   showToast(`怀里停留开始，解锁数字是 ${target}`);
+   finishTask();
+   return;
+ }
+ if(choice.state==="lapNext"){
+   state.effects[state.turn].lapNext=true;
+   showToast("保持到下一轮");
+   finishTask();
+   return;
+ }
+ if(choice.state==="leanNext"){
+   state.effects[state.turn].leanNext=true;
+   showToast("靠在怀里到下一轮");
+   finishTask();
+   return;
+ }
+ if(choice.sec){startTimer(choice.t,choice.sec);return}
+
+ finishTask();
+}
+
+function openTimeChoice(){
+ $("mk").textContent=`由 ${state.names[1-state.turn]} 决定`;
+ $("mt").textContent="选择亲吻时长";
+ $("mb").textContent="选一个时长";
+ $("mn").textContent="中途任何一方想停，都可以立即停止。";
+ $("opts").innerHTML="";
+ [45,60,90].forEach(sec=>{
+   const b=document.createElement("button");
+   b.className="opt";b.textContent=`${sec} 秒`;
+   b.onclick=()=>{modal.classList.remove("show");startTimer(`亲吻 ${sec} 秒`,sec)};
+   $("opts").appendChild(b);
+ });
+ $("skip").style.display="block";
+ modal.classList.add("show");
+}
+
+function openLaughChallenge(mode){
+ if(mode==="nose"){
+   currentTask={...(currentTask||{}),laughChallengeActive:true};
+   startTimer("鼻尖贴近对视20秒，执行者不许笑或躲开",20);
+   return;
+ }
+
+ $("mk").textContent=`由 ${state.names[1-state.turn]} 决定`;
+ $("mt").textContent="憋笑挑战";
+ $("mb").textContent=`选择 ${state.names[state.turn]} 要接受的挑战`;
+ $("mn").textContent="执行者不能笑、缩肩或躲开；任何一方想停都可以立即停止。";
+ $("opts").innerHTML="";
+
+ [
+  {t:"锁骨憋笑挑战：由对方选左边或右边，亲吻30秒",sec:30},
+  {t:"颈侧憋笑挑战：亲吻30秒，不能缩脖子",sec:30},
+  {t:"耳边憋笑挑战：贴近耳边亲吻或说悄悄话30秒",sec:30}
+ ].forEach(choice=>{
+   const b=document.createElement("button");
+   b.className="opt";
+   b.textContent=choice.t;
+   b.onclick=()=>{
+     modal.classList.remove("show");
+     currentTask={...(currentTask||{}),laughChallengeActive:true};
+     startTimer(choice.t,choice.sec);
+   };
+   $("opts").appendChild(b);
+ });
+
+ $("skip").style.display="block";
+ modal.classList.add("show");
+}
+
+function finishTimedTask(){
+ if(currentTask?.laughChallengeActive){
+   openLaughResult();
+   return;
+ }
+ finishTask();
+}
+
+function openLaughResult(){
+ timerModal.classList.remove("show");
+ $("mk").textContent="憋笑挑战结果";
+ $("mt").textContent="有没有笑或躲开？";
+ $("mb").textContent=`由 ${state.names[1-state.turn]} 判断结果`;
+ $("mn").textContent="成功：当前玩家获得一次立即再掷；失败：正常结束本回合。";
+ $("opts").innerHTML="";
+
+ const success=document.createElement("button");
+ success.className="opt";
+ success.textContent="成功：没笑、没躲开 → 再掷一次";
+ success.onclick=()=>{
+   modal.classList.remove("show");
+   currentTask=null;
+   state.pending=false;
+   render();
+   save(false);
+   showToast("挑战成功，立即再掷一次");
+ };
+
+ const fail=document.createElement("button");
+ fail.className="opt";
+ fail.textContent="失败：笑了或躲开 → 结束回合";
+ fail.onclick=()=>{
+   modal.classList.remove("show");
+   currentTask=null;
+   showToast("挑战失败，本回合结束");
+   endTurn();
+ };
+
+ $("opts").appendChild(success);
+ $("opts").appendChild(fail);
+ $("skip").style.display="none";
+ modal.classList.add("show");
+}
+
+function openPairChoice(){
+ $("mk").textContent=`由 ${state.names[1-state.turn]} 决定`;
+ $("mt").textContent="二选一";
+ $("mb").textContent="选择执行内容";
+ $("mn").textContent="执行者可以随时停止。";
+ $("opts").innerHTML="";
+ [
+  {t:"按摩2分钟",sec:120},
+  {t:"亲吻60秒",sec:60}
+ ].forEach(choice=>{
+   const b=document.createElement("button");
+   b.className="opt";b.textContent=choice.t;
+   b.onclick=()=>{modal.classList.remove("show");startTimer(choice.t,choice.sec)};
+   $("opts").appendChild(b);
+ });
+ $("skip").style.display="block";
+ modal.classList.add("show");
+}
+
+function startTimer(task,sec){
+ currentTask={...(currentTask||{}),task,sec};
+ $("timerTitle").textContent="准备好后开始";
+ $("timerTask").textContent=task;
+ remain=total=sec;
+ $("timer").textContent=remain;
+ $("bar").style.width="100%";
+ timerModal.classList.add("show");
+}
+
+$("timerStart").onclick=()=>{
+ clearInterval(timerId);
+ timerId=setInterval(()=>{
+   remain--;
+   $("timer").textContent=remain;
+   $("bar").style.width=(remain/total*100)+"%";
+   if(remain<=0){
+     clearInterval(timerId);
+     showToast("计时完成");
+     setTimeout(()=>{timerModal.classList.remove("show");finishTimedTask()},350);
+   }
+ },1000);
+};
+
+$("timerDone").onclick=()=>{
+ clearInterval(timerId);
+ timerModal.classList.remove("show");
+ finishTask();
+};
+
+function finishTask(){
+ currentTask=null;
+ endTurn();
+}
+
+$("skip").onclick=()=>{
+ modal.classList.remove("show");
+ showToast("已跳过，不惩罚");
+ currentTask=null;
+ endTurn();
+};
+
+function handleMainEvent(pos,node){
+ switch(pos){
+   case 3:
+     openOpponentChoice("heart","对手决定");
+     break;
+   case 6:{
+     const delta=Math.random()<.5?-2:2;
+     const loc=state.loc[state.turn];
+     state.loc[state.turn]={kind:"main",pos:Math.max(0,Math.min(mainNodes.length,loc.pos+delta))};
+     showToast(delta>0?"幸运前进2格":"倒霉后退2格");
+     endTurn();
+     break;
+   }
+   case 10:{
+     const a=state.loc[0],b=state.loc[1];
+     state.loc[0]=b;state.loc[1]=a;
+     showToast("双方交换位置");
+     endTurn();
+     break;
+   }
+   case 13:
+     showToast("获得再掷一次");
+     state.pending=false;
+     render();
+     save(false);
+     break;
+   case 18:{
+     const r=1+Math.floor(Math.random()*6);
+     const delta=r<=2?-4:r>=5?5:0;
+     const loc=state.loc[state.turn];
+     state.loc[state.turn]={kind:"main",pos:Math.max(0,Math.min(mainNodes.length,loc.pos+delta))};
+     showToast(delta>0?"豪赌成功，前进5格":delta<0?"豪赌失败，后退4格":"豪赌平局，原地不动");
+     endTurn();
+     break;
+   }
+   case 21:{
+     const back=state.lastMerge[state.turn]||7;
+     state.loc[state.turn]={kind:"main",pos:back};
+     showToast(`退回主线第 ${back} 格`);
+     endTurn();
+     break;
+   }
+   case 24:{
+     const sec=[45,60,90][Math.floor(Math.random()*3)];
+     startTimer(`随机亲吻 ${sec} 秒`,sec);
+     break;
+   }
+   case 27:
+     showToast("终点必须刚好到达，走过头会反弹");
+     endTurn();
+     break;
+   case 28:
+     openOpponentChoice("bold","对手决定");
+     break;
+   default:
+     openOpponentChoice("heart",node.label);
+ }
+}
+
+function endTurn(){
+ state.pending=false;
+ state.turn=1-state.turn;
+ render();
+ save(false);
+}
+
+function resetGame(ask=true){
+ if(ask && !confirm("确定重新开始吗？当前进度会清空。"))return;
+
+ clearInterval(timerId);
+ timerId=null;currentTask=null;remain=0;total=0;
+ localStorage.removeItem("heartBranchGameTrueForkV2");
+
+ const oldNames=[...state.names];
+ state={
+  names:oldNames,
+  loc:[{kind:"main",pos:0},{kind:"main",pos:0}],
+  turn:0,playing:true,pending:false,effects:[{},{}],lastMerge:[0,0]
+ };
+
+ modal.classList.remove("show");
+ timerModal.classList.remove("show");
+ winModal.classList.remove("show");
+ $("dice").textContent="⚀";
+ $("timer").textContent="30";
+ $("bar").style.width="100%";
+ buildMap();
+ render();
+ save(false);
+ window.scrollTo({top:0,behavior:"smooth"});
+ showToast("新一局开始");
+}
+
+$("save").onclick=()=>save(true);
+$("reset").onclick=()=>resetGame(true);
+$("again").onclick=()=>resetGame(false);
+$("full").onclick=async()=>{
+ try{
+   if(!document.fullscreenElement)await document.documentElement.requestFullscreen();
+   else await document.exitFullscreen();
+ }catch(e){
+   showToast("可用浏览器“添加到主屏幕”获得全屏体验");
+ }
+};
+
+buildMap();
+if(load()&&state.playing){
+ $("setup").style.display="none";
+ render();
+ showToast("已恢复上次进度");
+}
+</script>
+</body>
+</html>
